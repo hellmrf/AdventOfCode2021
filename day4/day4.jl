@@ -38,6 +38,25 @@ function findwinner(boardsmarks, boards, numbers)::Tuple{Int, Int}
     return 0, n
 end
 
+function findloser(boardsmarks, boards, numbers)::Tuple{Int, Int}
+    numboards = length(boards)
+    victories = 0
+    won = Int[]
+    for n ∈ numbers
+        @inbounds for i ∈ 1:length(boardsmarks)
+            mark_if_exists!(boardsmarks[i], boards[i], n)
+            if isnothing(findfirst(==(i), won)) && checkvictory(boardsmarks[i])
+                victories += 1
+                push!(won, i)
+            end
+            if victories == numboards
+                return i, n
+            end
+        end
+    end
+    return 0, n
+end
+
 function part1(numbers::Vector{Int}, boards::Vector{Matrix{Int}})::Int
     boardsmarks = [fill(false, size(board)) for board ∈ boards]
     won, number = findwinner(boardsmarks, boards, numbers)
@@ -49,8 +68,15 @@ function part1(numbers::Vector{Int}, boards::Vector{Matrix{Int}})::Int
     return points
 end
 
-function part2(number::Vector{Int}, boards::Vector{Matrix{Int}})::Int
-    return 0
+function part2(numbers::Vector{Int}, boards::Vector{Matrix{Int}})::Int
+    boardsmarks = [fill(false, size(board)) for board ∈ boards]
+    lose, number = findloser(boardsmarks, boards, numbers)
+
+    notmarked = findall(==(false), boardsmarks[lose])
+    ∑ = sum(boards[lose][notmarked]) 
+    points = ∑ * number
+    
+    return points
 end
 
 
