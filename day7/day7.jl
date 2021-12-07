@@ -13,8 +13,7 @@ function align(positions::Vector{Int}, cost::Function)::Int
 end
 
 function fuel_consumption(pos1::Int, pos2::Int)::Int
-    pos1, pos2 = sort([pos1, pos2])
-    aₙ = n = pos2 - pos1
+    aₙ = n = abs(pos2 - pos1)
     a₁ = 1
     Sₙ = n * (a₁ + aₙ) / 2
     return Sₙ
