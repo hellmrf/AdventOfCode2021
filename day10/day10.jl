@@ -15,8 +15,20 @@ end
 
 const OPENERS = Char['(', '{', '[', '<']
 const CLOSERS = Char[')', '}', ']', '>']
-const PENALTIES = Dict{Char, Int}(')' => 3, ']' => 57, '}' => 1197, '>' => 25137)
-const PAIRS = Dict{Char, Char}(')' => '(', ']' => '[', '}' => '{', '>' => '<')
+const SYNTAX_CONTESTS = Dict{Char, Int}(')' => 3, ']' => 57, '}' => 1197, '>' => 25137)
+const AUTOCOMPLETE_CONTESTS = Dict{Char, Int}(')' => 1, ']' => 2, '}' => 3, '>' => 4)
+
+function pair(c::Char)::Char
+    PAIRS = Dict{Char, Char}('(' => ')', '[' => ']', '{' => '}', '<' => '>', ')' => '(', ']' => '[', '}' => '{', '>' => '<')
+    return PAIRS[c]
+end
+
+function highlight_position(s::String, pos::Int)::String
+    if pos < 1 || pos > length(s)
+        error(ArgumentError("Invalid position"))
+    end
+    return s[1:pos-1] * "\033[1;31m" * s[pos] * "\033[0m" * s[pos+1:end]
+end
 
 function part1(lines::Vector{String})::Int
     errors = Dict{Char, Int}(')' => 0, ']' => 0, '}' => 0, '>' => 0)
@@ -26,7 +38,7 @@ function part1(lines::Vector{String})::Int
             if c ∈ OPENERS
                 push!(opened, c)
             elseif c ∈ CLOSERS
-                if PAIRS[c] == opened[end]
+                if c == pair(opened[end])
                     pop!(opened)
                 else
                     errors[c] += 1
@@ -36,11 +48,50 @@ function part1(lines::Vector{String})::Int
         end
     end
 
-    return sum(values(errors * PENALTIES))
+    return sum(values(errors * SYNTAX_CONTESTS))
+end
+
+function autocomplete(line::String)::String
+    opened = Char[]
+    for c ∈ line
+        if c ∈ OPENERS
+            push!(opened, c)
+        elseif c ∈ CLOSERS
+            if c == pair(opened[end])
+                pop!(opened)
+            else
+                return ""
+            end
+        end
+    end
+    return opened |> reverse .|> pair |> join
+end
+
+function score_completion(completion::String)::Int
+    comp = collect(completion)
+    score = 0
+    for c ∈ comp
+        score *= 5
+        score += AUTOCOMPLETE_CONTESTS[c]
+    end
+    return score
 end
 
 function part2(lines::Vector{String})::Int
-    return 0
+    scores = Int[]
+    for l ∈ lines
+        completion = autocomplete(l)
+        if completion == ""
+            continue
+        end
+        score = score_completion(completion)
+        push!(scores, score)
+    end
+
+    sort!(scores)
+
+    # I can use Int() because the problem ensures that we'll allways have an even number of lines.
+    return Int(median(scores)) 
 end
 
 
