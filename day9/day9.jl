@@ -14,16 +14,21 @@ function get_adjacents_values(mat::Matrix{Int}, i::Int, j::Int)
     return [mat[irange, j]..., mat[i, jrange]...]
 end
 
-function part1(mat::Matrix{Int})::Int
+function getlowpoints(mat::Matrix{Int})::Vector{Tuple{Int, Int}}
     m, n = size(mat)
-    sum = 0
+    lowpoints = []
     for i ∈ 1:m, j ∈ 1:n
         adj = get_adjacents_values(mat, i, j)
         if all(mat[i, j] .< adj)
-            sum += mat[i, j] + 1
+            push!(lowpoints, (i, j))
         end
     end
-    return sum
+    return lowpoints
+end
+
+
+function part1(mat::Matrix{Int})::Int
+    return sum(x -> mat[x...] + 1, getlowpoints(mat))
 end
 
 ±(a, b) = (a + b, a - b)
@@ -37,14 +42,14 @@ function follow_positive_gradient(mat, i, j, memory=Tuple{Int, Int}[])
     positions = Set{Tuple{Int, Int}}([(i, j)])
     push!(memory, (i, j))
     for i′ ∈ irange
-        if (i′, j) ∉ memory && mat[i′, j] ∈ val ± 1 && mat[i′, j] != 9
+        if (i′, j) ∉ memory && mat[i′, j] > val && mat[i′, j] != 9
             positions = positions ∪ Set([(i′, j)])
             nexts = follow_positive_gradient(mat, i′, j, memory)
             positions = positions ∪ nexts
         end
     end
     for j′ ∈ jrange
-        if (i, j′) ∉ memory && mat[i, j′] ∈ val ± 1 && mat[i, j′] != 9
+        if (i, j′) ∉ memory && mat[i, j′] > val && mat[i, j′] != 9
             positions = positions ∪ Set([(i, j′)])
             nexts = follow_positive_gradient(mat, i, j′, memory)
             positions = positions ∪ nexts
@@ -57,9 +62,9 @@ end
 function part2(mat::Matrix{Int})::Int
     greatests = Int[]
     saved_basins = Set{Tuple{Int,Int}}[]
-    m, n = size(mat)
-    for i ∈ 1:m, j ∈ 1:n
-        basin = follow_positive_gradient(mat, i, j)
+    lowpoints = getlowpoints(mat)
+    for lp ∈ lowpoints
+        basin = follow_positive_gradient(mat, lp...)
         basinsize = length(basin)
 
         if basin ∈ saved_basins
@@ -85,7 +90,6 @@ main(s::Symbol) = main(Val{s})
 
 function main(filename::Union{String,SystemPath})
     mat = permutedims(parse.(Int, hcat(split.(readlines(string(filename)), "")...)))
-    global t = mat
     return main(mat)
 end
 
