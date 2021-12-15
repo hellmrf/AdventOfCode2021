@@ -1,6 +1,7 @@
 using FilePathsBase
 using FilePathsBase: /
 using OhMyREPL
+using StatsBase
 
 struct Rule
     pair::Pair{String,Char}
@@ -56,6 +57,21 @@ function step(polymer::String, rules::Vector{Rule}, count_insertions = false)
     return insertstrs(polymer, toinsert)
 end
 
+function dictextrema(d::Dict)
+    mink = 0
+    minv = Inf
+    maxk = 0
+    maxv = 0
+    for (k, v) ∈ d
+        if v < minv
+            minv, mink = v, k
+        end
+        if v > maxv
+            maxv, maxk = v, k
+        end
+    end
+    return ((mink, minv), (maxk, maxv))
+end
 
 function runsteps(polymer::String, rules::Vector{Rule}, steps = 100)
     for _ = 1:steps
