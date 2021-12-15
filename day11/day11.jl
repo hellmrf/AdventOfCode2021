@@ -61,7 +61,7 @@ function step(mat::Matrix{Int})
     return step!(copy(mat))
 end
 
-function part1(mat::Matrix{Int})::Int
+function part1!(mat::Matrix{Int})::Int
     STEPS = 100
     counter = 0
     for _ ∈ 1:STEPS
@@ -72,8 +72,15 @@ function part1(mat::Matrix{Int})::Int
     return counter 
 end
 
-function part2(mat::Matrix{Int})::Int
-    return 0
+function part2!(mat::Matrix{Int})::Int
+    n_elems = prod(size(mat))
+    step = 0
+    while true
+        _, cntr = step!(mat)
+        step += 1
+        cntr == n_elems && (break)
+    end
+    return step
 end
 
 
@@ -91,5 +98,5 @@ function main(filename::Union{String,SystemPath})
 end
 
 function main(mat::Matrix{Int})
-    return (part1(mat), part2(mat))
+    return (part1!(copy(mat)), part2!(copy(mat)))
 end
