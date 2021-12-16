@@ -2,6 +2,7 @@ using FilePathsBase
 using FilePathsBase: /
 using OhMyREPL
 using SparseArrays
+using UnicodePlots
 
 const Point = Tuple{Int, Int}
 
