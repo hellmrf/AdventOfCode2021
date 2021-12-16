@@ -25,6 +25,23 @@ function right(rule::Rule)
     return rule.pair.second
 end
 
+function pairs(rule::Rule)
+    return [left(rule)[1]*right(rule), right(rule)*left(rule)[2]]
+end
+ 
+struct Polymer
+    polymer::Dict{String, Int}
+end
+
+function Polymer(polymer_str::String)::Polymer
+    p = Dict{String, Int}();
+    for i ∈ 1:length(polymer_str)-1
+        str = polymer_str[i:i+1]
+        p[str] = haskey(p, str) ? p[str] + 1 : 1;
+    end
+    return Polymer(p)
+end
+
 
 function insertchar(str::String, char::Char, pos::Int, to = :right)
     if to == :left
@@ -42,7 +59,7 @@ function insertstrs(str::String, toinsert::Vector{Tuple{Int,Char}})
     return str
 end
 
-function step(polymer::String, rules::Vector{Rule}, count_insertions = false)
+function step(polymer::String, rules::Vector{Rule})
     toinsert = Tuple{Int,Char}[]
     for i ∈ 1:length(polymer)-1
         for rule ∈ rules
@@ -51,17 +68,30 @@ function step(polymer::String, rules::Vector{Rule}, count_insertions = false)
             end
         end
     end
-    if count_insertions
-        return insertstrs(polymer, toinsert), toinsert
-    end
     return insertstrs(polymer, toinsert)
 end
 
+function step(polymer::Polymer, rules::Vector{Rule})
+    (; polymer) = polymer
+    newpolymer = Dict(k => 0 for k ∈ keys(polymer))
+
+    for rule ∈ rules
+        leftrule = left(rule)
+        if !haskey(polymer, leftrule)
+            continue
+        end
+        occurences = polymer[leftrule] 
+        for p ∈ pairs(rule)
+            newpolymer[p] = haskey(newpolymer, p) ? newpolymer[p] + occurences : occurences
+        end
+    end
+    
+    return Polymer(newpolymer)
+end
+
 function dictextrema(d::Dict)
-    mink = 0
+    mink = maxk = maxv = 0
     minv = Inf
-    maxk = 0
-    maxv = 0
     for (k, v) ∈ d
         if v < minv
             minv, mink = v, k
@@ -73,24 +103,61 @@ function dictextrema(d::Dict)
     return ((mink, minv), (maxk, maxv))
 end
 
-function runsteps(polymer::String, rules::Vector{Rule}, steps = 100)
+
+function runsteps(polymer, rules::Vector{Rule}, steps = 100)
     for _ = 1:steps
-        polymer = step(polymer, rules, count_insertions)
+        polymer = step(polymer, rules)
     end
     return polymer
 end
 
+function countchars(polymer::Polymer, initialpolymer::String)::Dict{Char, Int}
+    # The only character that doesn't begin a pair is the last character.
+    lastchar = initialpolymer[end]
+    counter = Dict{Char, Int}(lastchar => 1)
 
+    for (k, v) ∈ polymer.polymer
+        if haskey(counter, k[1])
+            counter[k[1]] += v
+        else
+            counter[k[1]] = v
+        end
+    end
+
+    return counter
+end
+
+
+"""
+    part1(polymer::String, rules::Vector{Rule})::Int
+I used the plain and simple "do everything and count" approach. Obviously this doesn't work for the second part. 
+However, the complexity of the implementation is directly linked to the requirements of the problem.
+Because of that, I'm keeping the simple solution and adding the improved one for the second part.
+"""
 function part1(polymer::String, rules::Vector{Rule})::Int
     STEPS = 10
     polymer = runsteps(polymer, rules, STEPS)
     frequencies = countmap(polymer)
-    min, max = dictextrema(frequencies)
+    de = dictextrema(frequencies)
+    min, max = de
     return max[2] - min[2]
 end
 
-function part2(polymer::String, rules::Vector{Rule})::Int
-    return 0
+"""
+    part2(polymer::String, rules::Vector{Rule})::Int
+Here I'm using an improved (actually totally reimplemented) approach to solve the problem.
+This new implementation uses a space complexity of O(1), and a time complexity of O(n*m) (with n being the number of Rules and m being the number of steps).
+The ideia is to parse the polymer string into a Polymer type, which is a Dict{String, Int} that counts how many times each pair occurs in the polymer.
+Then, the process of insertions, i.e. NN -> C, is basically set NN to 0 and NC and CN to the number of time NN occurred first.
+"""
+function part2(polymer_str::String, rules::Vector{Rule})::Int
+    STEPS = 40
+    polymer = Polymer(polymer_str)
+    lastpolymer = runsteps(polymer, rules, STEPS)
+    countmap = countchars(lastpolymer, polymer_str)
+    de = dictextrema(countmap)
+    min, max = de
+    return max[2] - min[2]
 end
 
 
