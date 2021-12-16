@@ -1,0 +1,7 @@
+[deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+FilePathsBase = "48062228-2e41-5def-b9a4-89aafe57970f"
+OhMyREPL = "5fb14364-9ced-5910-84b2-373655c76a03"
+Parsers = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
