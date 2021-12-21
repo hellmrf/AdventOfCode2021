@@ -79,6 +79,25 @@ function drop_redundant_connections!(connmodel::ConnectionModel)
 end
 
 """
+    drop_redundant_connections2(connmodel::ConnectionModel)
+
+Connections of the type EndCave() => Any[] are redundant because we'll never
+    get back once we get to the end.
+Connections of the type Cave() => [StartCave(), ...] are redundant because
+    it's impossible to get back to the StartCave, as it's necessarily an SmallCave.
+We can then drop these connections.
+"""
+function drop_redundant_connections2!(connmodel::ConnectionModel)
+    for k ∈ keys(connmodel)
+        if k isa EndCave
+            delete!(connmodel, k)
+        else
+            filter!(x -> !isa(x, StartCave), connmodel[k])
+        end
+    end
+end
+
+"""
     stringify_path(path::Vector{Cave})
 
 Takes a path (Vector{Cave}) and returns the string representation, just like the problem description.
@@ -115,7 +134,7 @@ julia> showpaths(p)
 ```
 """
 function showpaths(p::Set{Vector{Cave}})::Nothing
-    @info "Found $(length(p)) paths:\n$(join(stringify_path.(p), "\n"))" 
+    @info "Found $(length(p)) paths:\n$(join(sort(stringify_path.(p)), "\n"))" 
 end
 
 """
@@ -159,6 +178,37 @@ function followpath(::ConnectionModel, ::EndCave, visited::Vector{Cave}=Cave[])
     return Set{Vector{Cave}}([visited])
 end
 
+"""
+    followpath2(connmodel::ConnectionModel; allow_twice=true)
+
+Just like some other days, I got tired of trying to make my old solution to work. 
+So I just rewritten everything in a completely fresh approach.  I dropped the 
+dynamic programming approach, as it was getting very complicated to model all cases.
+This version is also about twice as fast as the old one.
+"""
+function followpath2(connmodel::ConnectionModel; allow_twice=true)
+    valid_paths = Set{Vector{Cave}}()
+    possible_paths = Vector{Cave}[[StartCave()]]
+    while length(possible_paths) > 0
+        path = pop!(possible_paths)
+        if isa(path[end], EndCave)
+            push!(valid_paths, path)
+            continue
+        end
+        visited_twice = !allow_twice || !allunique(filter(x -> isa(x, SmallCave), path))
+        canIgo(x) = isa(x, Union{BigCave, EndCave}) || !visited_twice || x ∉ path;
+        neighbours = filter(canIgo, connmodel[path[end]])
+        for neighbour ∈ neighbours
+            nextpath = Cave[path; neighbour]
+            if isa(neighbour, EndCave)
+                push!(valid_paths, nextpath)
+            else
+                push!(possible_paths, nextpath)
+            end
+        end
+    end
+    return valid_paths
+end
 
 ##############
 ## SOLUTION ##
@@ -171,7 +221,10 @@ function part1(connections::Vector{Connection})::Int
 end
 
 function part2(connections::Vector{Connection})::Int
-    return 0
+    model = model_connections(connections)
+    drop_redundant_connections2!(model)
+    p = followpath2(model)
+    return length(p) 
 end
 
 
@@ -190,7 +243,6 @@ main(s::Symbol) = main(Val{s})
 function main(filename::Union{String,SystemPath})
     lines = readlines(string(filename))
     conns = [tuple(Cave.(split(line, "-"))...) for line ∈ lines]
-    global t = conns
     return main(conns)
 end
 
